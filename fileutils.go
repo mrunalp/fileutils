@@ -13,13 +13,13 @@ func CopyFile(source string, dest string) error {
 	}
 	defer sf.Close()
 
-	df, err := os.Open(dest)
+	df, err := os.Create(dest)
 	if err != nil {
 		return err
 	}
 	defer df.Close()
 
-	_, err = io.Copy(sf, df)
+	_, err = io.Copy(df, sf)
 	if err != nil {
 		return err
 	}
