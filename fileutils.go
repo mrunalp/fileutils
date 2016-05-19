@@ -32,16 +32,14 @@ func CopyFile(source string, dest string) error {
 		return fmt.Errorf("could not convert to syscall.Stat_t")
 	}
 
-	if st.Mode&syscall.S_IFBLK != 0 || st.Mode&syscall.S_IFCHR != 0 {
+	if st.Mode&syscall.S_IFMT == syscall.S_IFBLK || st.Mode&syscall.S_IFMT == syscall.S_IFCHR {
 		devMajor := int64(major(uint64(st.Rdev)))
 		devMinor := int64(minor(uint64(st.Rdev)))
 		mode := uint32(si.Mode() & 07777)
-		if st.Mode&syscall.S_IFBLK != 0 {
-			fmt.Printf("BLOCK")
+		if st.Mode&syscall.S_IFMT == syscall.S_IFBLK {
 			mode |= syscall.S_IFBLK
 		}
-		if st.Mode&syscall.S_IFCHR != 0 {
-			fmt.Printf("CHAR")
+		if st.Mode&syscall.S_IFMT == syscall.S_IFCHR {
 			mode |= syscall.S_IFCHR
 		}
 		if err := syscall.Mknod(dest, mode, int(mkdev(devMajor, devMinor))); err != nil {
