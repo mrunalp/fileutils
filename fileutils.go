@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"syscall"
 )
 
@@ -75,11 +76,51 @@ func CopyFile(source string, dest string) error {
 	}
 
 	// Chmod the file
-	if err := os.Chmod(dest, si.Mode()); err != nil {
-		return err
+	if !(si.Mode()&os.ModeSymlink == os.ModeSymlink) {
+		if err := os.Chmod(dest, si.Mode()); err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func CopyDirectory(source string, dest string) error {
+	fi, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dest, fi.Mode()); err != nil {
+		return err
+	}
+	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// get the relative path
+		relPath, err := filepath.Rel(source, path)
+		if err != nil {
+			return nil
+		}
+
+		// skip the source directory
+		if info.IsDir() {
+			if path != source {
+				if err := os.Mkdir(filepath.Join(dest, relPath), info.Mode()); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
+		// Copy the file
+		if err := CopyFile(path, filepath.Join(dest, relPath)); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func major(device uint64) uint64 {
