@@ -14,6 +14,14 @@ func CopyFile(source string, dest string) error {
 		return err
 	}
 
+	st, ok := si.Sys().(*syscall.Stat_t)
+	if !ok {
+		return fmt.Errorf("could not convert to syscall.Stat_t")
+	}
+
+	uid := int(st.Uid)
+	gid := int(st.Gid)
+
 	// Handle symlinks
 	if si.Mode()&os.ModeSymlink != 0 {
 		target, err := os.Readlink(source)
@@ -23,15 +31,9 @@ func CopyFile(source string, dest string) error {
 		if err := os.Symlink(target, dest); err != nil {
 			return err
 		}
-		return nil
 	}
 
 	// Handle device files
-	st, ok := si.Sys().(*syscall.Stat_t)
-	if !ok {
-		return fmt.Errorf("could not convert to syscall.Stat_t")
-	}
-
 	if st.Mode&syscall.S_IFMT == syscall.S_IFBLK || st.Mode&syscall.S_IFMT == syscall.S_IFCHR {
 		devMajor := int64(major(uint64(st.Rdev)))
 		devMinor := int64(minor(uint64(st.Rdev)))
@@ -45,7 +47,6 @@ func CopyFile(source string, dest string) error {
 		if err := syscall.Mknod(dest, mode, int(mkdev(devMajor, devMinor))); err != nil {
 			return err
 		}
-		return nil
 	}
 
 	// Handle regular files
@@ -66,6 +67,11 @@ func CopyFile(source string, dest string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Chown the file
+	if err := os.Lchown(dest, uid, gid); err != nil {
+		return err
 	}
 
 	return nil
