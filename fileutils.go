@@ -74,6 +74,11 @@ func CopyFile(source string, dest string) error {
 		return err
 	}
 
+	// Chmod the file
+	if err := os.Chmod(dest, si.Mode()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
