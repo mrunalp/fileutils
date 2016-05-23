@@ -85,6 +85,9 @@ func CopyFile(source string, dest string) error {
 	return nil
 }
 
+// CopyDirectory copies the files under the source directory
+// to dest directory. The dest directory is created if it
+// does not exist.
 func CopyDirectory(source string, dest string) error {
 	fi, err := os.Stat(source)
 	if err != nil {
