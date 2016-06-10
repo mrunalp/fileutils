@@ -93,31 +93,53 @@ func CopyDirectory(source string, dest string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dest, fi.Mode()); err != nil {
+
+	// Get owner.
+	st, ok := fi.Sys().(*syscall.Stat_t)
+	if !ok {
+		return fmt.Errorf("could not convert to syscall.Stat_t")
+	}
+
+	// We have to pick an owner here anyway.
+	if err := MkdirAllNewAs(dest, fi.Mode(), int(st.Uid), int(st.Gid)); err != nil {
 		return err
 	}
+
 	return filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// get the relative path
+		// Get the relative path
 		relPath, err := filepath.Rel(source, path)
 		if err != nil {
 			return nil
 		}
 
-		// skip the source directory
 		if info.IsDir() {
+			// Skip the source directory.
 			if path != source {
+				// Get the owner.
+				st, ok := info.Sys().(*syscall.Stat_t)
+				if !ok {
+					return fmt.Errorf("could not convert to syscall.Stat_t")
+				}
+
+				uid := int(st.Uid)
+				gid := int(st.Gid)
+
 				if err := os.Mkdir(filepath.Join(dest, relPath), info.Mode()); err != nil {
+					return err
+				}
+
+				if err := os.Lchown(filepath.Join(dest, relPath), uid, gid); err != nil {
 					return err
 				}
 			}
 			return nil
 		}
 
-		// Copy the file
+		// Copy the file.
 		if err := CopyFile(path, filepath.Join(dest, relPath)); err != nil {
 			return err
 		}
