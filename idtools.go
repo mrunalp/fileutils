@@ -39,7 +39,7 @@ func MkdirAllNewAs(path string, mode os.FileMode, ownerUID, ownerGID int) error 
 		}
 	}
 
-	if err := os.MkdirAll(path, mode); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(path, mode); err != nil {
 		return err
 	}
 
